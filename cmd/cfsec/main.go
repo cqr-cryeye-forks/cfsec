@@ -20,6 +20,7 @@ import (
 
 var disableColours = false
 var format string
+var outputFilePath string
 var parameters string
 var includePassed = false
 var includeIgnored = false
@@ -29,6 +30,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&disableColours, "no-colour", disableColours, "Disable coloured output")
 	rootCmd.Flags().BoolVar(&disableColours, "no-color", disableColours, "Disable colored output (American style!)")
 	rootCmd.Flags().StringVarP(&format, "format", "f", format, "Select output format: default, json, csv")
+	rootCmd.Flags().StringVarP(&outputFilePath, "output", "o", format, "Specify output file (only *.json supported)")
 	rootCmd.Flags().BoolVar(&includePassed, "include-passed", includePassed, "Resources that pass checks are included in the result output")
 	rootCmd.Flags().BoolVar(&includeIgnored, "include-ignored", includeIgnored, "Ignore comments with have no effect and all resources will be scanned")
 	rootCmd.Flags().StringVarP(&parameters, "parameters", "p", parameters, "Pass comma separated parameter values. eg; Key1=Value1,Key2=Value2")
@@ -100,6 +102,14 @@ var rootCmd = &cobra.Command{
 			sort.Slice(results, func(i, j int) bool {
 				return results[i].Status == rules.StatusPassed && results[j].Status != rules.StatusPassed
 			})
+		}
+
+		if format == "json" && outputFilePath != "" {
+			file, _ := os.OpenFile(outputFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+			err = formatter(file, results, dir, getFormatterOptions()...)
+			if err != nil {
+				fmt.Printf("Failed to save results to file: %s due to: %v", outputFilePath, err)
+			}
 		}
 
 		return formatter(os.Stdout, results, dir, getFormatterOptions()...)
